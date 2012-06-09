@@ -163,3 +163,25 @@ pip-log.txt
 
 # Mac crap
 .DS_Store
+
+
+*.pyc
+lib/login/credentials.py
+
+titanium/dist
+titanium/tmp
+*.class
+*.pyc
+*.pyo
+titanium/Resources/tracer_results
+titanium/Resources/app.blob
+titanium/Resources/app.db
+
+
+*.pyc
+crawler/paste/*.pyc
+crawler/paste/util/*.pyc
+crawler/*.sqlite
+.pydevproject.bak
+
+

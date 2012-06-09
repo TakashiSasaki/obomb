@@ -1,5 +1,0 @@
-*.pyc
-paste/*.pyc
-paste/util/*.pyc
-*.sqlite
-.pydevproject.bak
