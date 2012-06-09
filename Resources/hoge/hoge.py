@@ -1,3 +1,0 @@
-class hoge(object):
-    pass
-
