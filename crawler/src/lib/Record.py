@@ -1,4 +1,5 @@
-from config import *
+from __future__ import unicode_literals, print_function
+from common import *
 #from __future__ import unicode_literals, print_function
 from sqlalchemy import Column, String, Integer, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import relation
@@ -9,12 +10,12 @@ from datetime import datetime
 from Crawl import Crawl
 from lib.GvizDataTableMixin import GvizDataTableMixin
 from lib.DeclarativeBase import DeclarativeBase
+from lib.TableMixin import TableMixin
 
-class Record(DeclarativeBase, GvizDataTableMixin):
+class Record(DeclarativeBase, GvizDataTableMixin, TableMixin):
     __tablename__ = "Record"
     __table_args__ = {'sqlite_autoincrement': True}
-    
-            
+    engine = SqlAlchemyEngine().getEngine()
     
     objectId = Column(Integer, primary_key=True, index=True, nullable=False) #unique only on this database
     def getObjectId(self):
@@ -34,7 +35,7 @@ class Record(DeclarativeBase, GvizDataTableMixin):
     def getUri(self):
         return self.uri
     def setUri(self, uri_):
-        assert isinstance(uri_, str)
+        assert isUnicode(uri_), "URI must be unicode string"
         from urlparse import urlsplit, urlunsplit
         split_uri = urlsplit(uri_, allow_fragments=True)
         assert isinstance(split_uri, tuple)
@@ -48,7 +49,7 @@ class Record(DeclarativeBase, GvizDataTableMixin):
     def getUrl(self):
         return self.url
     def setUrl(self, url_):
-        assert isinstance(url_, str)
+        assert isUnicode(url_), "URL must be unicode string"
         from urlparse import urlparse, ParseResult
         parse_result = urlparse(url_, allow_fragments=True)
         rebuilt_url = parse_result.geturl()
@@ -85,7 +86,7 @@ class Record(DeclarativeBase, GvizDataTableMixin):
     def getJsonString(self):
         return self.jsonString
     def setJsonString(self, json_string):
-        assert isinstance(json_string, str)
+        assert isUnicode(json_string), "JSON string must be unicode string"
         from json import loads, dumps
         x = loads(json_string)
         self.jsonString = dumps(x)
@@ -120,25 +121,24 @@ class Record(DeclarativeBase, GvizDataTableMixin):
     memo9 = Column(String(), nullable=True)
 
     def __str__(self):
-        s = "<MyObject(%s,%s,%s,%s,%s)>" % (self.url, self.size, self.lastModified, self.lastSeen, self.uri)
+        s = "<Record(%s,%s,%s,%s,%s)>" % (self.url, self.size, self.lastModified, self.lastSeen, self.uri)
         return s
 
     @classmethod
     def dropTable(cls):
         try:
             my_object_table = DeclarativeBase.metadata.tables[cls.__tablename__]
-            my_object_table.drop(engine, checkfirst=True)
-        except:
-            pass
+            my_object_table.drop(cls.engine, checkfirst=True)
+        except Exception, e:
+            info(e)
         
     @classmethod
     def createTable(cls):
         try:
             table = DeclarativeBase.metadata.tables[cls.__tablename__]
-            table.create(engine, checkfirst=True)
-        except:
-            pass
-
+            table.create(cls.engine, checkfirst=True)
+        except Exception, e:
+            info(e)
 
     @classmethod
     def dropAndCreateTable(cls, message):
@@ -149,22 +149,22 @@ class Record(DeclarativeBase, GvizDataTableMixin):
                 cls.createTable()
 
     @classmethod
-    def dummy(cls, n_dummy):
+    def insertDummyRecords(cls, n_dummy):
         n_before = cls.count()
-        session = Session()
+        session = SqlAlchemySessionFactory().createSqlAlchemySession()
         record = None
         for x in range(n_dummy):
             crawl = Crawl.dummy()
             from uuid import uuid1
             record = Record()
             record.crawlId = crawl.crawlId
-            record.uri = "http://example.com/"+uuid1().get_hex()
-            record.url = "http://exmaple.com/"+uuid1().get_hex()
+            record.uri = "http://example.com/" + uuid1().get_hex()
+            record.url = "http://exmaple.com/" + uuid1().get_hex()
             from random import randint
-            record.size = randint()
+            record.size = randint(1000, 9999)
             record.lastSeen = utcnow()
             record.lastModified = utcnow()
-            record.jsonString = {}
+            record.jsonString = "{}"
             record.belongsTo = None
             record.exhaustive = False
             session.add(record)
@@ -182,68 +182,31 @@ class MemoMap(DeclarativeBase):
     def __init__(self, memo_id, memo_name):
         self.memoId = memo_id
         self.memoName = memo_name
-    
-class _Test(TestCase):
-    __slots__ = ()
-    
-    def setUp(self):
-        #self.engine = create_engine("sqlite:///test3.sqlite", echo=True)
-        DeclarativeBase.metadata.create_all(engine)
-        
-    def testInsert(self):
-        session = Session()
-        session.add(MemoMap(2, "two"))
-        try:
-            session.commit()
-        except IntegrityError:
-            debug ("the row already exists")
-        session.close()
-        
-    def testUserIdentifier(self):
-        crawl = Crawl("a@b")
-        self.assertEqual(crawl.userName, "a", "malformed user name")
-        self.assertEqual(crawl.userDomain, "b", "malformed user domain")
-    
-    def testInsert2(self):
-        crawl = Crawl()
-        crawl.begin()
-        self.assertGreater(len(crawl.userName), 0, "no user name was given")
-        self.assertGreater(len(crawl.userDomain), 0, "no user domain was given")
-        crawl.end()
-        session = Session()
-        session.add(crawl)
-        session.commit()
-        debug("crawlId of inserted record is %s" % (crawl.crawlId))
-        session.close()
-        Crawl.dropTable()
-        
-    def testGviz(self):
-        crawl = Crawl()
-        crawl.begin()
-        session = Session()
-        session.add(crawl)
-        session.commit()
-        
-        record = Record()
-        record.setUrl("http://example.com/")
-        record.setCrawlId(crawl.crawlId)
-        record.setLastSeen(utcnow())
-        session = Session()
-        session.add(record)
-        try:
-            session.commit()
-        except IntegrityError, e:
-            session.close()
-            Record.dropAndCreateTable(e.message)
-            self.fail(e.message)
-        data_table = record.getGvizDataTable(session)
-        session.close()
-        debug(data_table.ToJSCode("x"))
-        debug(data_table.ToCsv())
-        debug(data_table.ToHtml())
-        debug(data_table.ToJSon())
-        debug(data_table.ToJSonResponse())
-        debug(data_table.ToResponse())
 
-if __name__ == "__main__":
-    main()
+class _TableOperation(TestCase):
+    def setUp(self):
+        TestCase.setUp(self)
+        
+    def tearDown(self):
+        TestCase.tearDown(self)
+        
+    def testCreateAndDropTable(self):
+        Record.dropTable()
+        self.assertFalse(Record.exists())
+        Record.createTable()
+        self.assertTrue(Record.exists())
+        Record.dropTable()
+        self.assertFalse(Record.exists())
+
+class _RecordOperation(TestCase):
+    def setUp(self):
+        TestCase.setUp(self)
+        Record.createTable()
+        self.assertTrue(Record.exists())
+    def tearDown(self):
+        Record.dropTable()
+        self.assertFalse(Record.exists())
+        TestCase.tearDown(self)
+    def testDummyRecords(self):
+        Record.insertDummyRecords(10)
+        self.assertEqual(Record.count(), 10)
