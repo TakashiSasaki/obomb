@@ -1,4 +1,6 @@
-from config import *
+from __future__ import unicode_literals, print_function
+__all__ = ["FileCrawler"]
+from common import *
 from lib.Record import Record
 from lib.Crawl import Crawl
 import os.path, socket, locale
@@ -78,7 +80,7 @@ class _GitBlobHash(Thread):
         return self.readSize
 
 class FileCrawler(Thread):
-    __slots__=()
+    __slots__ = ()
     
     def __init__(self, path, sqlalchemy_session, max_files=None):
         Thread.__init__(self)
@@ -149,19 +151,20 @@ class FileCrawler(Thread):
                                                           locale.format("%d", self.skipCount, grouping=True),
                                                           self.getFilesPerSecond())
 
-class _Test(TestCase):
+class _(TestCase):
     
     def setUp(self):
         Record.createTable()
+        self.assertTrue(Record.exists())
         Crawl.createTable()
-        
+        self.assertTrue(Crawl.exists())
+        self.session = SqlAlchemySessionFactory().createSqlAlchemySession()
     
     def test1(self):
-        session = Session()
         try:
-            file_crawler = FileCrawler("C://", session, max_files=10)
+            file_crawler = FileCrawler("C://", self.session, max_files=10)
         except IntegrityError, e:
-            session.close()
+            self.session.close()
             Crawl.dropAndCreate(e.message)
             self.fail(e.message)
         file_crawler.start()
@@ -172,7 +175,8 @@ class _Test(TestCase):
             debug(file_crawler)
             count += 1
         file_crawler.join()
-        session.close()
-
-if __name__ == "__main__":
-    main()
+        self.session.close()
+    
+    def tearDown(self):
+        self.session.close()
+        TestCase.tearDown(self)
