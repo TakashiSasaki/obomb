@@ -1,4 +1,6 @@
 from __future__ import unicode_literals, print_function
+__all__=["DeclarativeBase"]
+
 from common import *
 from sqlalchemy import  MetaData as _MetaData
 from sqlalchemy.ext.declarative import declarative_base as _declarative_base
