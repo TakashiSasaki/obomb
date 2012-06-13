@@ -1,4 +1,6 @@
-from config import *
+from __future__ import unicode_literals, print_function
+__all__ = ["PasteThread", "WsgirefThread"]
+from common import *
 from wsgiref.simple_server import demo_app
 from threading import Thread
 import logging
