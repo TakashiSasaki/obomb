@@ -40,7 +40,7 @@ class GvizDataTableMixin(object):
         for column in cls.getColumns():
             assert isinstance(column, Column)
             n = column.name
-            info ("column name %s" % n)
+            debug("column name %s" % n)
             assert n is not None, "column name is None"
             assert isBytes(n), "column name (%s) is expected to be bytes" % n
             t = column.type
@@ -71,8 +71,9 @@ class GvizDataTableMixin(object):
         return gviz_data
     
     @classmethod
-    def getGvizDataTable(cls, session):
+    def getGvizDataTable(cls):
         assert isclass(cls)
+        session = SqlAlchemySessionFactory().createSqlAlchemySession()
         query = session.query(cls)
         assert isinstance(query, Query)
         data_table = DataTable(cls.getGvizSchema())
@@ -82,7 +83,7 @@ class GvizDataTableMixin(object):
             data_table.AppendData([gviz_data])
         return data_table
 
-class _Test(TestCase):
+class _(TestCase):
     def setUp(self):
         TestCase.setUp(self)
     
