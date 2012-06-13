@@ -1,6 +1,8 @@
-from config import *
+from __future__ import unicode_literals, print_function
+from common import *
 
-class _Test(TestCase):
+import unittest
+class _(unittest.TestCase):
     def setUp(self):
         debug("setUp")
     

@@ -1,4 +1,5 @@
-from config import *
+from __future__ import unicode_literals, print_function
+from common import *
 from webapp2 import RequestHandler, WSGIApplication
 
 class MyHandler(RequestHandler):
