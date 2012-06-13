@@ -1,10 +1,14 @@
-from config import *
+from __future__ import unicode_literals, print_function
+__all__ = ["Crawl"]
+
+from common import *
 from sqlalchemy import Column, String, Integer, DateTime, Boolean
 from datetime import datetime, timedelta
-from lib.DeclarativeBase import DeclarativeBase
-from lib.GvizDataTableMixin import GvizDataTableMixin
-from lib.TableMixin import TableMixin
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import *
+from lib.DeclarativeBase import *
+from lib.GvizDataTableMixin import *
+from lib.TableMixin import *
+from lib.Record import *
 
 class Crawl(DeclarativeBase, GvizDataTableMixin, TableMixin):
     __tablename__ = "Crawl"
@@ -94,8 +98,8 @@ class Crawl(DeclarativeBase, GvizDataTableMixin, TableMixin):
         return self.getNumberOfProcessedBytes() / self.getElapsedSeconds()
     
     @classmethod
-    def dummy(cls, n_dummy = 1):
-        session = Session()
+    def dummy(cls, n_dummy=1):
+        session = SqlAlchemySessionFactory().createSqlAlchemySession()
         from uuid import uuid1
         n_before = cls.count()
         dummy_crawl = None
@@ -112,7 +116,59 @@ class Crawl(DeclarativeBase, GvizDataTableMixin, TableMixin):
         info(dummy_crawl)
         assert isinstance(dummy_crawl, Crawl)
         return dummy_crawl
+
+import unittest   
+class _(unittest.TestCase):
+    __slots__ = ()
+    def setUp(self):
+        #self.engine = create_engine("sqlite:///test3.sqlite", echo=True)
+        self.engine = SqlAlchemyEngine("obomb").getEngine()
+        DeclarativeBase.metadata.create_all(self.engine)
+        self.session = SqlAlchemySessionFactory().createSqlAlchemySession()
+        
+    def testUserIdentifier(self):
+        crawl = Crawl("a@b")
+        self.assertEqual(crawl.userName, "a", "malformed user name")
+        self.assertEqual(crawl.userDomain, "b", "malformed user domain")
     
+    def testInsert2(self):
+        crawl = Crawl()
+        crawl.begin()
+        self.assertGreater(len(crawl.userName), 0, "no user name was given")
+        self.assertGreater(len(crawl.userDomain), 0, "no user domain was given")
+        crawl.end()
+        self.session.add(crawl)
+        self.session.commit()
+        debug("crawlId of inserted record is %s" % (crawl.crawlId))
+        self.session.close()
+        Crawl.dropTable()
+        
+    def testGviz(self):
+        crawl = Crawl()
+        crawl.begin()
+        self.session.add(crawl)
+        self.session.commit()
+        
+        record = Record()
+        record.setUrl("http://example.com/")
+        record.setCrawlId(crawl.crawlId)
+        record.setLastSeen(utcnow())
+        self.session.add(record)
+        try:
+            self.session.commit()
+        except IntegrityError, e:
+            self.session.close()
+            Record.dropAndCreateTable(e.message)
+            self.fail(e.message)
+        data_table = record.getGvizDataTable(self.session)
+        self.session.close()
+        debug(data_table.ToJSCode("x"))
+        debug(data_table.ToCsv())
+        debug(data_table.ToHtml())
+        debug(data_table.ToJSon())
+        debug(data_table.ToJSonResponse())
+        debug(data_table.ToResponse())
+
 class _TestLibCrawl(TestCase):
     def setUp(self):
         #DeclarativeBase.metadata.create_all(engine)
@@ -127,7 +183,7 @@ class _TestLibCrawl(TestCase):
         self.assertIsInstance(dummy, Crawl)
 
     def testAutoIncrement(self):
-        session = Session()
+        session = SqlAlchemySessionFactory().createSqlAlchemySession()
         my_crawl_1 = Crawl()
         my_crawl_1.begin()
         my_crawl_1.end()
@@ -157,7 +213,7 @@ class _TestLibCrawl(TestCase):
 
     def testGvizDataTable(self):
         debug("testGvizDataTable")
-        session = Session()
+        session = SqlAlchemySessionFactory().createSqlAlchemySession()
         crawl = Crawl()
         crawl.begin()
         crawl.end()
@@ -169,9 +225,10 @@ class _TestLibCrawl(TestCase):
             Crawl.dropAndCreate(e.message)
             self.fail(e.message)
         session.close()
-        session = Session()
+        session = SqlAlchemySessionFactory().createSqlAlchemySession()
         info(Crawl.getGvizDataTable(session).ToJSonResponse())
         session.close()
 
 if __name__ == "__main__":
     main()
+
