@@ -1,11 +1,13 @@
-from config import *
+from __future__ import unicode_literals, print_function
+__all__=["TableMixin"]
+from common import *
 from sqlalchemy import Table
 
 class TableMixin(object):
     
     @classmethod
     def getTable(cls):
-        assert isinstance(cls.__tablename__, str)
+        assert isUnicode(cls.__tablename__)
         table = cls.getMetadata().tables[cls.__tablename__]
         assert isinstance(table, Table)
         return table
@@ -13,6 +15,7 @@ class TableMixin(object):
     @classmethod
     def exists(cls):
         table = cls.getTable()
+        engine = SqlAlchemyEngine().getEngine()
         return table.exists(engine)
     
     @classmethod
@@ -21,6 +24,7 @@ class TableMixin(object):
         try:
             table = cls.getTable()
             debug("dropping table " + str(table))
+            engine = SqlAlchemyEngine().getEngine()
             table.drop(engine, checkfirst=True)
         except Exception, e:
             exception(e.message)
@@ -30,9 +34,11 @@ class TableMixin(object):
     def createTable(cls):
         try:
             table = cls.getTable()
+            engine = SqlAlchemyEngine().getEngine()
             table.create(engine, checkfirst=True)
         except Exception, e:
             exception(e.message)
+            info(e.message)
             raise e
     
     @classmethod
@@ -45,7 +51,7 @@ class TableMixin(object):
     
     @classmethod
     def count(cls):
-        session = Session()
+        session = SqlAlchemySessionFactory().createSqlAlchemySession()
         query = session.query(cls)
         c = query.count()
         session.close()
@@ -53,6 +59,15 @@ class TableMixin(object):
 
     @classmethod
     def getQuery(cls):
-        session = Session()
+        session = SqlAlchemySessionFactory().createSqlAlchemySession()
         query = session.query(cls.getTable())
         return query
+
+class _(TestCase):
+    def setUp(self):
+        TestCase.setUp(self)
+    def tearDown(self):
+        TestCase.tearDown(self)
+    def test(self):
+        pass
+    
