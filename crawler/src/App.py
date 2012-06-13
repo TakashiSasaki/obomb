@@ -1,4 +1,5 @@
-from config import *
+from __future__ import unicode_literals, print_function
+from common import *
 from webapp2 import RequestHandler, WSGIApplication
 #from wsgiref.simple_server import demo_app
 
@@ -40,12 +41,13 @@ if __name__ == "__main__":
     import webbrowser
     webbrowser.open("http://localhost:10523/Record.html", autoraise=1)
 
-class _TestApp(TestCase):
+import unittest
+class _TestApp(unittest.TestCase):
     
     def setUp(self):
-        TestCase.setUp(self)
+        unittest.TestCase.setUp(self)
         from random import randint
-        self.port = randint(10000,20000)
+        self.port = randint(10000, 20000)
         from lib.WsgiRunner import PasteThread
         self.pasteThread = PasteThread(CrawlApp(), self.port, timeout=5)
         self.assertIsNotNone(self.pasteThread.server)
@@ -75,4 +77,4 @@ class _TestApp(TestCase):
         self.pasteThread.shutdown()
         info("joining")
         self.pasteThread.join()
-        TestCase.tearDown(self)
+        unittest.TestCase.tearDown(self)
