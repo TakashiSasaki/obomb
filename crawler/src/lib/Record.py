@@ -1,4 +1,6 @@
 from __future__ import unicode_literals, print_function
+__all__=["Record"]
+
 from common import *
 #from __future__ import unicode_literals, print_function
 from sqlalchemy import Column, String, Integer, DateTime, Boolean, ForeignKey
@@ -217,5 +219,22 @@ class _RecordOperation(TestCase):
         TestCase.tearDown(self)
         
     def testInsertDummyRecords(self):
+        before = Record.count()
         Record.insertDummyRecords(10)
-        self.assertEqual(Record.count(), 10)
+        self.assertEqual(Record.count(), 10+before)
+
+class _MemoMap(TestCase):
+    def setUp(self):
+        TestCase.setUp(self)
+        self.session = SqlAlchemySessionFactory().createSqlAlchemySession()
+        
+    def tearDown(self):
+        TestCase.tearDown(self)
+    def testInsert(self):
+        self.session.add(MemoMap(2, "two"))
+        try:
+            self.session.commit()
+        except IntegrityError:
+            debug ("the row already exists")
+        self.session.close()
+        
