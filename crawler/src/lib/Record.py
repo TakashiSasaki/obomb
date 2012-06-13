@@ -2,12 +2,12 @@ from __future__ import unicode_literals, print_function
 from common import *
 #from __future__ import unicode_literals, print_function
 from sqlalchemy import Column, String, Integer, DateTime, Boolean, ForeignKey
-from sqlalchemy.orm import relation
+from sqlalchemy.orm import relation, relationship
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 #from MyCrawlTable import MyCrawlTable
 #from MyCrawl import MyCrawl
-from Crawl import Crawl
+#from lib.Crawl import *
 from lib.GvizDataTableMixin import GvizDataTableMixin
 from lib.DeclarativeBase import DeclarativeBase
 from lib.TableMixin import TableMixin
@@ -23,7 +23,8 @@ class Record(DeclarativeBase, GvizDataTableMixin, TableMixin):
         return self.objectId
     
     crawlId = Column(Integer, ForeignKey('Crawl.crawlId'), index=True, nullable=False) #identical for one session
-    myCrawlTable = relation(Crawl)
+    #crawl = relationship("Crawl", backref="record")
+    
     def getCrawlId(self):
         """crawlId is given for one crawl and is a foreign key of MyCrawl table."""
         return self.crawlId
@@ -154,14 +155,14 @@ class Record(DeclarativeBase, GvizDataTableMixin, TableMixin):
         session = SqlAlchemySessionFactory().createSqlAlchemySession()
         record = None
         for x in range(n_dummy):
-            crawl = Crawl.dummy()
-            from uuid import uuid1
+            #crawl = Crawl.dummy()
             record = Record()
-            record.crawlId = crawl.crawlId
+            from random import randint
+            record.crawlId = randint(10,99)
+            record.size = randint(1000, 9999)
+            from uuid import uuid1
             record.uri = "http://example.com/" + uuid1().get_hex()
             record.url = "http://exmaple.com/" + uuid1().get_hex()
-            from random import randint
-            record.size = randint(1000, 9999)
             record.lastSeen = utcnow()
             record.lastModified = utcnow()
             record.jsonString = "{}"
@@ -186,6 +187,10 @@ class MemoMap(DeclarativeBase):
 class _TableOperation(TestCase):
     def setUp(self):
         TestCase.setUp(self)
+        from lib.Crawl import Crawl
+        if not Crawl.exists():
+            Crawl.createTable()
+        self.assertTrue(Crawl.exists())
         
     def tearDown(self):
         TestCase.tearDown(self)
@@ -201,12 +206,16 @@ class _TableOperation(TestCase):
 class _RecordOperation(TestCase):
     def setUp(self):
         TestCase.setUp(self)
+        from lib.Crawl import Crawl
+        self.assertTrue(Crawl.exists())
         Record.createTable()
         self.assertTrue(Record.exists())
+        
     def tearDown(self):
         Record.dropTable()
         self.assertFalse(Record.exists())
         TestCase.tearDown(self)
-    def testDummyRecords(self):
+        
+    def testInsertDummyRecords(self):
         Record.insertDummyRecords(10)
         self.assertEqual(Record.count(), 10)

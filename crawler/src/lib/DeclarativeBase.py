@@ -2,9 +2,9 @@ from __future__ import unicode_literals, print_function
 from common import *
 from sqlalchemy import  MetaData as _MetaData
 from sqlalchemy.ext.declarative import declarative_base as _declarative_base
-DeclarativeBase = _declarative_base(metadata=_MetaData())
+#DeclarativeBase = _declarative_base(metadata=_MetaData())
+DeclarativeBase = _declarative_base()
 from sqlalchemy import  Column, String, Integer, DateTime, Boolean
-DeclarativeBase = _declarative_base(metadata=_MetaData())
 
 class _XYZ(DeclarativeBase):
     debug("XYZ start")
