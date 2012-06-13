@@ -1,16 +1,18 @@
-from config import *
+from __future__ import unicode_literals, print_function
+__all__=["TableMixin"]
+from common import *
 import lib
 import time
 
 class TableMixin(object):
 
-    def getTableMixin(self):
+    def get(self):
         assert issubclass(self.table, lib.DeclarativeBase.DeclarativeBase)
         assert issubclass(self.table, lib.GvizDataTableMixin.GvizDataTableMixin)
         assert issubclass(self.table, lib.TableMixin.TableMixin)
         
         if self.request.path_info == "" or self.request.path_info == "/":
-            session = Session()
+            session = SqlAlchemySessionFactory().createSqlAlchemySession()
             try:
                 data_table = self.table.getGvizDataTable(session)
                 session.close()
