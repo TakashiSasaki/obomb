@@ -1,4 +1,6 @@
-from config import *
+from __future__ import unicode_literals, print_function
+__all__ = ["GvizDataTableMixin"]
+from common import *
 from gviz_api import DataTable
 from sqlalchemy import Column
 from sqlalchemy.orm.query import Query
@@ -38,7 +40,9 @@ class GvizDataTableMixin(object):
         for column in cls.getColumns():
             assert isinstance(column, Column)
             n = column.name
-            assert isinstance(n, str)
+            info ("column name %s" % n)
+            assert n is not None, "column name is None"
+            assert isBytes(n), "column name (%s) is expected to be bytes" % n
             t = column.type
             if type(t) in STRING_CLASSES:
                 gviz_schema.append((n, GVIZ_STRING))
@@ -61,7 +65,7 @@ class GvizDataTableMixin(object):
         for column in self.getColumns():
             assert isinstance(column, Column)
             n = column.name
-            assert isinstance(n, str)
+            assert isBytes(n), "column name (%s) is expected to be bytes" % n
             v = getattr(self, n)
             gviz_data.append(v)
         return gviz_data
@@ -84,3 +88,6 @@ class _Test(TestCase):
     
     def tearDown(self):
         TestCase.tearDown(self)
+
+    def test(self):
+        pass
