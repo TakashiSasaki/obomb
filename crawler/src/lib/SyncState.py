@@ -1,4 +1,6 @@
-from config import *
+from __future__ import unicode_literals, print_function
+__all__ = ["SyncState"]
+from common import *
 from sqlalchemy import Column, Integer, String, DateTime
 from lib.DeclarativeBase import DeclarativeBase
 from lib.GvizDataTableMixin import GvizDataTableMixin
@@ -8,37 +10,37 @@ from uuid import uuid1
 class SyncState(DeclarativeBase, GvizDataTableMixin, TableMixin):
     __tablename__ = "SyncState" 
     stateUuid = Column(String, primary_key=True, index=True, nullable=False)
-    lockBegin = Column(DateTime, nullable = False)
-    lockEnd = Column(DateTime, nullable = True)
-    stateBeforeLock = Column(String, nullable = False)
-    stateAfterLock = Column(String, nullable = True)
-    agetnId = Column(String, nullable = True)
-    userName = Column(String, nullable = True)
-    userDomain = Column(String, nullable = True)
+    lockBegin = Column(DateTime, nullable=False)
+    lockEnd = Column(DateTime, nullable=True)
+    stateBeforeLock = Column(String, nullable=False)
+    stateAfterLock = Column(String, nullable=True)
+    agetnId = Column(String, nullable=True)
+    userName = Column(String, nullable=True)
+    userDomain = Column(String, nullable=True)
 
     def __init__(self):
         self.stateUuid = uuid1().get_hex()
     
-    def setLockBegin(self, lock_begin = None):
+    def setLockBegin(self, lock_begin=None):
         if lock_begin is None:
             lock_begin = utcnow()
         self.lockBegin = lock_begin
     
-    def setLockEnd(self, lock_end = None):
+    def setLockEnd(self, lock_end=None):
         if lock_end is None:
             lock_end = utcnow()
         self.lockEnd = lock_end
     
-    def setStateBeforeLock(self, state_before_lock = None):
+    def setStateBeforeLock(self, state_before_lock=None):
         if state_before_lock is None:
             state_before_lock = uuid1().get_hex()
-        assert isinstance(state_before_lock, str)
+        assert isUnicode(state_before_lock), "state must be unicode string"
         self.stateBeforeLock = state_before_lock
         
-    def setStateAfterLock(self, state_after_lock = None):
+    def setStateAfterLock(self, state_after_lock=None):
         if state_after_lock is None:
             state_after_lock = uuid1().get_hex()
-        assert isinstance(state_after_lock, str)
+        assert isUnicode(state_after_lock), "state must be unicode string"
         self.stateAfterLock = state_after_lock
         
     @classmethod
@@ -47,23 +49,22 @@ class SyncState(DeclarativeBase, GvizDataTableMixin, TableMixin):
         query = query.order_by(cls.lockBegin.desc()).limit(limit)
         return query.all()
         
-
-class _Test(TestCase):
+class _(TestCase):
     def setUp(self):
         TestCase.setUp(self)
+        self.session = SqlAlchemySessionFactory().createSqlAlchemySession()
         
     def testGeenrateDummyRows(self):
         count_before = SyncState.count()
-        session = Session()
         for x in ["a", "b", "c", "d"]:
             sync_state = SyncState()
             sync_state.setStateBeforeLock(x + uuid1().get_hex())
             sync_state.setLockBegin()
             sync_state.setLockEnd()
             sync_state.setStateAfterLock(x + uuid1().get_hex())
-            session.add(sync_state)
-        session.commit()
-        session.close()
+            self.session.add(sync_state)
+        self.session.commit()
+        self.session.close()
         count_after = SyncState.count()
         self.assertEqual(count_before + 4, count_after)
         
@@ -75,6 +76,3 @@ class _Test(TestCase):
 
     def tearDown(self):
         TestCase.tearDown(self)
-
-if __name__ == "__main__":
-    main()
